@@ -1,9 +1,7 @@
-# NutriTrack v5.5
+# NutriTrack v5.6.5
 
-Actualiza tu proyecto existente de Netlify con el contenido de este ZIP. index.html debe quedar en la raíz.
+Sube el contenido de esta carpeta a la raíz de la rama main de tu repositorio de GitHub Pages. Mantén la misma dirección para conservar tus registros locales. Puedes exportar una copia JSON desde Objetivos antes de actualizar.
 
-Cambios: nuevo icono NutriTrack con llama sobre la i y fondo verde oscuro durante el rebote del desplazamiento de Inicio. El contenido claro de Inicio se conserva.
+Al crear una receta, elige plato individual o para varias personas. El individual se apunta entero. Para un plato compartido, guarda el peso cocinado de toda la preparación y registra los gramos que te sirves. Las recetas de versiones anteriores conservan el registro por gramos. Ajustar ingredientes modifica solo esa comida. Las cantidades de ingredientes se expresan en el mismo estado que su etiqueta nutricional.
 
-Los datos se conservan al actualizar el mismo dominio. Exporta una copia JSON desde Objetivos antes de actualizar.
-
-Comprueba v5.5 en Objetivos y prueba el desplazamiento en tu iPhone.
+Elige el tema y el color de la llama en Objetivos. En Calendario, el resumen de alimentación indica cuándo los porcentajes usan objetivos estimados para fechas antiguas.

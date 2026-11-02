@@ -23,7 +23,7 @@ function go(id){
  render();window.scrollTo(0,0);
 }
 function render(){
- const light=tab==='inicio';
+ const light=tab==='inicio'; applyPalette();
  document.documentElement.dataset.theme=light?'light':'dark';
  document.querySelector('meta[name="theme-color"]').content=getComputedStyle(document.documentElement).getPropertyValue('--forest').trim();
  const screens={inicio:home,calendario:calendar,comidas:foodScreen,gym:gymScreen,progreso:progress,ajustes:settingsScreen};
@@ -47,10 +47,10 @@ function ring(t,date,full=false){
 function macroBars(t){return Object.entries(macroNames).map(([key,label])=>`<div class="macro ${key}"><div class="row"><b>${icon(key)}${label}</b><span><b>${fmt(t[key])}</b> / ${fmt(state.settings[key])} g</span></div>${progressBar(t[key],state.settings[key])}</div>`).join('')}
 function home(){
  const t=totals(today()),days=streak();
- return `<div class="daily-header"><header class="home-head"><div><h1>NutriTrack</h1><p class="muted date">${longDate(today())}</p></div><button class="streak-badge" data-view="calendario">${fire()}${days} ${days===1?'día':'días'} de racha</button></header>
+ return `<div class="daily-header"><header class="home-head"><div>${energyTitle(t)}<p class="muted date">${longDate(today())}</p></div><button class="streak-badge" data-view="calendario">${fire()}${days} ${days===1?'día':'días'} de racha</button></header>
  ${ring(t,today(),true)}</div><div class="home-macros">${macroBars(t)}</div>
- <button id="log-weight" class="measure-link"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M6 7q6-5 12 0l-3 4q-3-2-6 0zM12 9l2-3"/></svg>Registrar peso y cintura <span aria-hidden="true">›</span></button>
- <details class="extra"><summary>Recomendación alimentaria</summary><button data-action="recommend">Sugerir próxima comida</button><div id="recommendation"></div></details>`;
+ ${measureForm()}
+`;
 }
 function showStreak(before,after){
  const dialog=document.createElement('dialog');dialog.className='celebrate';
@@ -72,6 +72,7 @@ function calendar(){
  <div class="row month-head"><h2>${monthName(month)}</h2><div><button data-action="prev-month" aria-label="Mes anterior">‹</button><button data-action="next-month" aria-label="Mes siguiente">›</button></div></div>
  <div class="card calendar">${['L','M','X','J','V','S','D'].map(x=>'<b class="weekday">'+x+'</b>').join('')}${'<span></span>'.repeat(offset)}${cells}</div>
  <div class="card"><button class="link-row" id="month-history"><span>Entrenamientos en ${monthName(month)}<strong>${Object.entries(state.entries).filter(([d])=>d.startsWith(month)&&d<=today()).reduce((sum,[,r])=>sum+(r.gym?.length||0),0)}</strong></span><b>›</b></button></div>
+ ${monthNutrition()}
  ${showDay?dayDetail(selected):'<p class="hint">Toca un día para consultar o guardar un registro.</p>'}`;
 }
 function tabs(items,chosen,attr){return '<div class="tabs">'+items.map(([key,label])=>`<button data-${attr}="${key}" class="${chosen===key?'active':''}">${label}</button>`).join('')+'</div>'}
@@ -80,8 +81,8 @@ function mealList(meals){
  const order=['Desayuno','Comida','Merienda','Cena','Otros'];
  return [...groups].sort(([a],[b])=>order.indexOf(a)-order.indexOf(b)).map(([kind,items])=>`<section class="meal-group"><div class="row"><h2>${esc(kind)}</h2><b>${fmt(Math.round(items.reduce((s,m)=>s+n(m.kcal),0)))} kcal</b></div>
  ${items.map(m=>{
- const product=m.sourceId?(m.sourceType==='food'?state.foods.find(f=>f.id===m.sourceId):null):state.foods.find(f=>f.name===m.name);
- return `<div class="food-line">${thumb(product)||'<div class="food-placeholder">'+icon('comidas')+'</div>'}<div><div class="row"><b>${esc(m.name)}</b><span>${fmt(Math.round(m.kcal))} kcal</span></div><div class="row"><small>${fmt(m.grams)} g</small><button class="remove" data-delete-meal="${esc(m.id)}" aria-label="Quitar ${esc(m.name)}">Quitar</button></div><div class="meal-macros">${['p','f','c'].map((k,i)=>`<span class="${k}"><i></i>${['Prot.','Grasas','Hidr.'][i]} ${fmt(m[k])} g</span>`).join('')}</div></div></div>`;
+ const product=m.sourceId?(m.sourceType==='food'?state.foods.find(f=>f.id===m.sourceId):state.recipes.find(r=>r.id===m.sourceId)):state.foods.find(f=>f.name===m.name);
+ return `<div class="food-line">${thumb(product)||'<div class="food-placeholder">'+icon('comidas')+'</div>'}<div><div class="row"><b>${esc(m.name)}</b><span>${fmt(Math.round(m.kcal))} kcal</span></div><div class="row"><small>${m.portion==='individual'?'Plato individual':fmt(m.grams)+' g'}${m.adjusted?' · Adaptada':''}</small><button class="remove" data-delete-meal="${esc(m.id)}" aria-label="Quitar ${esc(m.name)}">Quitar</button></div><div class="meal-macros">${['p','f','c'].map((k,i)=>`<span class="${k}"><i></i>${['Prot.','Grasas','Hidr.'][i]} ${fmt(m[k])} g</span>`).join('')}</div></div></div>`;
  }).join('')}</section>`).join('')||'<p class="empty">Todavía no has registrado comidas este día.</p>';
 }
 function foodScreen(){
@@ -91,7 +92,7 @@ function foodScreen(){
  if(subtab==='recetas')return header+recipesScreen();
  return header+(selected!==today()?`<div class="notice">Registro del ${longDate(selected)}</div>`:'')+`
  <div class="card food-overview"><div>${ring(t,selected)}</div><div>${macroBars(t)}</div></div>
- <details class="add-meal"><summary>＋ Añadir comida</summary><div class="card">${mealForm()}</div></details>${mealList(record(selected).meals)}`;
+ <div class="diary-tools"><button type="button" class="secondary" data-action="recommend">Sugerir próxima comida</button><button type="button" id="toggle-meal" aria-controls="meal-editor" aria-expanded="false">＋ Añadir comida</button></div><div id="recommendation" aria-live="polite"></div><div id="meal-editor" class="card" hidden>${mealForm()}</div>${mealList(record(selected).meals)}`;
 }
 let draft={date:'',routine:'',sets:new Set(),minutes:45,intensity:7};
 function clearSession(){draft={date:selected,routine:'',sets:new Set(),minutes:45,intensity:7}}
@@ -116,6 +117,10 @@ function trend(points,average,label=metricNames[chartMetric][0]){
  const avg=values.map((_,i)=>{const a=values.slice(Math.max(0,i-6),i+1);return a.reduce((s,v)=>s+v,0)/a.length});
  return '<svg class="plot" viewBox="0 0 328 155" role="img" aria-label="Evolución de '+esc(label)+'">'+[lo,(hi+lo)/2,hi].map(v=>'<text x="0" y="'+y(v)+'">'+fmt(v)+'</text><path d="M32 '+y(v)+'h270"/>').join('')+'<polyline points="'+line(values)+'"/>'+(average?'<polyline class="avg" points="'+line(avg)+'"/>':'')+points.map(([d,v],i)=>'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="2.7"><title>'+d+' · '+fmt(v)+'</title></circle>').join('')+'<text x="32" y="151">'+dateObj(points[0][0]).toLocaleDateString('es-ES',{day:'numeric',month:'short'})+'</text><text x="302" text-anchor="end" y="151">'+dateObj(points.at(-1)[0]).toLocaleDateString('es-ES',{day:'numeric',month:'short'})+'</text></svg>'+(average?'<small>● Peso　<span class="blue">● Media de 7 registros</span></small>':'');
 }
+let progressDays=30;
+function periodSelector(id,days){
+ return '<label class="period-field">Periodo<select id="'+id+'">'+[[7,'Última semana'],[30,'Último mes'],[365,'Último año']].map(([v,label])=>'<option value="'+v+'" '+(days===v?'selected':'')+'>'+label+'</option>').join('')+'</select></label>';
+}
 function progress(){
  const data=Object.entries(state.entries).filter(([d])=>d<=today()).sort(([a],[b])=>a.localeCompare(b));
  const [label,unit]=metricNames[chartMetric],points=[];
@@ -124,10 +129,10 @@ function progress(){
  if(v!=null&&Number.isFinite(Number(v)))points.push([d,Number(v)]);
  for(const g of r.gym||[])for(const s of g.sets||[])if(s.completed!==false&&s.exercise)sets.push({...s,date:d});
  }
- const current=today().slice(0,7);
- const monthlyPoints=points.filter(([d])=>d.startsWith(current));
- const change=monthlyPoints.length>1?monthlyPoints.at(-1)[1]-monthlyPoints[0][1]:null;
- return '<h1>Progreso</h1>'+tabs(Object.entries(metricNames).map(([k,[l]])=>[k,l]),chartMetric,'metric')+'<div class="card"><h3>Evolución de '+label.toLowerCase()+'</h3>'+(points.length?'<strong class="big">'+fmt(points.at(-1)[1])+' '+unit+'</strong><small>Último registro</small>':'')+(change===null?'':'<small class="change">'+(change>0?'+':'')+fmt(change)+' '+unit+' en '+monthName(current)+'</small>')+trend(points,chartMetric==='weight')+'</div>'+(chartMetric==='weight'?exerciseChart(sets):'');
+ const cutoff=dateObj(today());cutoff.setDate(cutoff.getDate()-progressDays+1);
+ const visible=points.filter(([d])=>dateObj(d)>=cutoff);
+ const change=visible.length>1?visible.at(-1)[1]-visible[0][1]:null;
+ return '<h1>Progreso</h1>'+tabs(Object.entries(metricNames).map(([k,[l]])=>[k,l]),chartMetric,'metric')+'<div class="card"><h3>Evolución de '+label.toLowerCase()+'</h3>'+periodSelector('progress-days',progressDays)+(visible.length?'<strong class="big">'+fmt(visible.at(-1)[1])+' '+unit+'</strong><small>Último registro del periodo</small>':'')+(change===null?'':'<small class="change">'+(change>0?'+':'')+fmt(change)+' '+unit+' en el periodo</small>')+(visible.length?trend(visible,chartMetric==='weight'):'<p class="empty">Sin registros en este periodo.</p>')+'</div>'+(chartMetric==='intensity'?exerciseChart(sets):'');
 }
 function exerciseChart(sets){
  const exercises=[...new Set(sets.map(s=>s.exercise))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -140,12 +145,12 @@ function exerciseChart(sets){
  }
  const points=[...byDate];
  return '<section class="card exercise-chart"><h3>Progreso por ejercicio</h3>'+(exercises.length?
- '<label>Ejercicio<select id="choose-exercise">'+exercises.map(e=>'<option '+(e===exerciseChoice?'selected':'')+'>'+esc(e)+'</option>').join('')+'</select></label><label>Periodo<select id="exercise-days">'+[[7,'Última semana'],[30,'Último mes'],[365,'Último año']].map(([days,name])=>'<option value="'+days+'" '+(days===exerciseDays?'selected':'')+'>'+name+'</option>').join('')+'</select></label><small>Peso máximo levantado por día (kg) en series completadas.</small>'+(points.length?'<strong>'+fmt(points.at(-1)[1])+' kg · último registro</strong>'+trend(points,false,exerciseChoice+' en kg'):'<p class="empty">Sin series de este ejercicio en el periodo seleccionado.</p>'):'<p class="empty">Completa una serie en Gimnasio para ver tu evolución.</p>')+'</section>';
+ '<label>Ejercicio<select id="choose-exercise">'+exercises.map(e=>'<option '+(e===exerciseChoice?'selected':'')+'>'+esc(e)+'</option>').join('')+'</select></label><label class="period-field">Periodo<select id="exercise-days">'+[[7,'Última semana'],[30,'Último mes'],[365,'Último año']].map(([days,name])=>'<option value="'+days+'" '+(days===exerciseDays?'selected':'')+'>'+name+'</option>').join('')+'</select></label><small>Peso máximo levantado por día (kg) en series completadas.</small>'+(points.length?'<strong>'+fmt(points.at(-1)[1])+' kg · último registro</strong>'+trend(points,false,exerciseChoice+' en kg'):'<p class="empty">Sin series de este ejercicio en el periodo seleccionado.</p>'):'<p class="empty">Completa una serie en Gimnasio para ver tu evolución.</p>')+'</section>';
 }
 function settingsScreen(){
  const s=state.settings,button=(key,title,desc,symbol)=>'<button class="link-row" data-panel="'+key+'"><span class="glyph">'+symbol+'</span><span><b>'+title+'</b><small>'+desc+'</small></span><b>›</b></button>';
- if(goalPanel)return '<button class="back" data-panel="">‹ Objetivos</button><h1>'+({goal:'Objetivo activo',auto:'Calcular mis macros',manual:'Elegir mis macros',backup:'Copias de seguridad'})[goalPanel]+'</h1>'+(goalPanel==='backup'?backupScreen():goalPanel==='goal'?'<form id="edit-goal" class="card stack"><label>Objetivo<select name="goalMode">'+Object.entries(goalNames).map(([k,name])=>'<option value="'+k+'" '+(s.goalMode===k?'selected':'')+'>'+name+'</option>').join('')+'</select></label><label>Peso objetivo (kg)<input type="number" step=".1" min="30" max="400" name="goal" required value="'+n(s.goal)+'"></label><button>Guardar objetivo</button></form>':'<div class="card">'+goalForm(goalPanel)+'</div>');
- return '<h1>Objetivos</h1><div class="card goal-card"><div class="budget"><strong>'+fmt(s.kcal)+'</strong> kcal al día</div><div class="goal-macros">'+Object.entries(macroNames).map(([k,v])=>'<div class="'+k+'">'+icon(k)+'<small>'+v+'</small><b>'+fmt(s[k])+' g</b></div>').join('')+'</div></div><div class="card">'+button('goal','Objetivo activo',(goalNames[s.goalMode]||'Mantener peso')+'<br>Peso objetivo · '+fmt(s.goal)+' kg','◎')+'</div><h2>Ajustar mi objetivo</h2><div class="card options">'+button('auto','Calcular mis macros','Según mis datos, actividad y meta','▦')+'</div><div class="card options">'+button('manual','Elegir mis macros','Introducir los gramos manualmente','✎')+'</div><div class="card">'+button('backup','Copias de seguridad','Exportar o importar mis datos','⇧')+'</div><small class="version">NutriTrack v5.5</small>';
+ if(goalPanel)return '<button class="back" data-panel="">‹ Objetivos</button><h1>'+({goal:'Objetivo activo',auto:'Configurar mis macronutrientes',manual:'Configurar mis macronutrientes',backup:'Copias de seguridad'})[goalPanel]+'</h1>'+(goalPanel==='backup'?backupScreen():goalPanel==='goal'?'<form id="edit-goal" class="card stack"><label>Objetivo<select name="goalMode">'+Object.entries(goalNames).map(([k,name])=>'<option value="'+k+'" '+(s.goalMode===k?'selected':'')+'>'+name+'</option>').join('')+'</select></label><label>Peso objetivo (kg)<input type="number" step=".1" min="30" max="400" name="goal" required value="'+n(s.goal)+'"></label><button>Guardar objetivo</button></form>':'<div class="card">'+goalForm(goalPanel)+'</div>');
+ return '<h1>Objetivos</h1><div class="card goal-card"><div class="budget"><strong>'+fmt(s.kcal)+'</strong> kcal al día</div><div class="goal-macros">'+Object.entries(macroNames).map(([k,v])=>'<div class="'+k+'">'+icon(k)+'<small>'+v+'</small><b>'+fmt(s[k])+' g</b></div>').join('')+'</div></div><div class="card">'+button('goal','Objetivo activo',(goalNames[s.goalMode]||'Mantener peso')+'<br>Peso objetivo · '+fmt(s.goal)+' kg','◎')+'</div><h2>Ajustar mi objetivo</h2><div class="card options">'+button(s.targetMethod==='manual'?'manual':'auto','Configurar mis macronutrientes','Calcularlos o introducirlos a mano','▦')+'</div>'+paletteForm()+'<div class="card">'+button('backup','Copias de seguridad','Exportar o importar mis datos','⇧')+'</div><small class="version">NutriTrack v5.6.5</small>';
 }
 function wireDesign(){
  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));
@@ -157,12 +162,96 @@ function wireDesign(){
  session.querySelectorAll('[data-set]').forEach(el=>el.onchange=()=>{if(el.checked)draft.sets.add(el.dataset.set);else draft.sets.delete(el.dataset.set)});
  for(const k of ['minutes','intensity'])session.elements[k].oninput=e=>draft[k]=n(e.target.value);
  }
- if($('#log-weight'))$('#log-weight').onclick=()=>{
-   tab='calendario';selected=today();month=selected.slice(0,7);showDay=true;render();
-   const field=$('#day-weight');field.closest('.card').scrollIntoView({block:'start'});
- };
+ wireExtras();
  document.querySelectorAll('[data-duration]').forEach(b=>b.onclick=()=>{if(!timerEnd&&!alarmOn){timerLength=Number(b.dataset.duration);updateTimer()}});
  if($('#timer-toggle')){$('#timer-toggle').onclick=()=>startTimer(timerEnd||alarmOn?0:timerLength);updateTimer()}
- for(const [id,set] of [['choose-exercise',v=>exerciseChoice=v],['exercise-days',v=>exerciseDays=Number(v)]])if($('#'+id))$('#'+id).onchange=e=>{set(e.target.value);render()};
+ for(const [id,set] of [['choose-exercise',v=>exerciseChoice=v],['exercise-days',v=>exerciseDays=Number(v)],['progress-days',v=>progressDays=Number(v)]])if($('#'+id))$('#'+id).onchange=e=>{set(e.target.value);render()};
+ for(const [selector,label] of [['#choose-exercise','Ejercicio'],['#add-session select[name=routine]','Rutina']]){
+   const select=$(selector);if(select)enablePicker(select,label);
+ }
+
  if($('#month-history'))$('#month-history').onclick=()=>{historyFilter=month;tab='gym';gymTab='historial';render();window.scrollTo(0,0)};
+}
+
+let openRoutine='';
+const palettes={green:['Verde',140,'#acf45e'],blue:['Azul',215,'#92c6ff'],pink:['Rosa',329,'#ffb4db'],orange:['Naranja',26,'#ffc48a'],red:['Rojo',355,'#ffb1ab']};
+function applyPalette(){
+  const root=document.documentElement;
+  const key=Object.hasOwn(palettes,state.settings.palette||'')?state.settings.palette:'green';
+  root.dataset.palette=key;
+  root.style.setProperty('--h',palettes[key][1]);
+  root.style.setProperty('--tone',palettes[key][2]);
+  const flame=palettes[state.settings.flame]||palettes[key];
+  root.style.setProperty('--flame-edge',flame===palettes.green?'#abf746':flame[2]);
+  root.style.setProperty('--flame-fill',flame===palettes.green?'#51c934':'hsl('+flame[1]+' 58% 52%)');
+  root.style.setProperty('--flame-shadow',flame===palettes.green?'#49763c':'hsl('+flame[1]+' 33% 35%)');
+}
+function paletteForm(){
+ const options=k=>Object.entries(palettes).map(([id,[label]])=>'<option value="'+id+'" '+(k===id?'selected':'')+'>'+label+'</option>').join('');
+ return '<div class="card stack"><h3>Apariencia</h3><label>Tema<select id="palette">'+options(state.settings.palette||'green')+'</select></label><label>Color de la llama<select id="flame"><option value="">Usar el del tema</option>'+options(state.settings.flame)+'</select></label></div>';
+}
+function energyTitle(t){
+ const goal=Number(state.settings.kcal),pct=goal>0?Math.min(100,100*t.kcal/goal):0;
+ const celebrate=pct>=100&&state.energyCelebrated!==today();
+ if(celebrate){state.energyCelebrated=today();save()}
+ return '<h1 class="energy-title '+(celebrate?'complete':'')+'" style="--filled:'+pct+'%">NutriTrack</h1>';
+}
+function measureStatus(day){
+ const labels=[day.weight?'Peso':'',day.waist?'Cintura':''].filter(Boolean);
+ return labels.length?'✓ '+(labels.length===2?'Peso y cintura registrados':labels[0]+(day.weight?' registrado':' registrada'))+' hoy':'';
+}
+function measureForm(){
+ const date=today(),day=record(date);
+ return '<section class="daily-log"><h2>Registro diario</h2><p>Para comparar tus medidas, tómalas en condiciones parecidas. Por ejemplo, por la mañana, antes de desayunar.</p><form id="measures" class="grid" data-date-key="'+date+'">'+
+ [['weight','Peso (kg)'],['waist','Cintura (cm)']].map(([key,label])=>'<label>'+label+'<input name="'+key+'" type="number" inputmode="decimal" min="0.1" step="any" value="'+(Number(day[key])||'')+'"></label>').join('')+
+ '<button type="submit">Guardar registro</button></form><small role="status" id="measure-status">'+measureStatus(day)+'</small></section>';
+}
+function goalSnapshot(){
+ return Object.fromEntries(nutritionKeys.map(k=>[k,state.settings[k]]));
+}
+function monthNutrition(){
+ const days=Object.entries(state.entries).filter(([d,r])=>d.startsWith(month)&&d<=today()&&r.meals?.length);
+ const estimates=days.some(([,r])=>!r.nutritionGoal);
+ const metrics=nutritionKeys.map(k=>{
+   const ratios=days.flatMap(([d,r])=>{
+     const target=Number((r.nutritionGoal||state.settings)[k]);
+     return target>0?[totals(d)[k]/target]:[];
+   });
+   const value=ratios.length?fmt(Math.round(100*ratios.reduce((s,v)=>s+v,0)/ratios.length))+' %':'—';
+   return '<div><small>'+(macroNames[k]||'Calorías')+'</small><b>'+value+'</b></div>';
+ }).join('');
+ return '<section class="card"><h3>Resumen de alimentación</h3><p>'+days.length+' '+(days.length===1?'día con comidas registradas':'días con comidas registradas')+'</p><div class="nutrition-grid">'+metrics+'</div><small>Media diaria de lo consumido respecto al objetivo. Solo cuentan los días con comidas. El 100 % equivale al objetivo.</small>'+(estimates?'<small>Para los registros antiguos sin objetivo guardado se usa el objetivo actual como estimación.</small>':'')+'</section>';
+}
+function wireExtras(){
+ for(const [id,field] of [['palette','palette'],['flame','flame']]){
+   const el=$('#'+id);if(el)el.onchange=()=>{state.settings[field]=el.value;save();render()};
+ }
+ for(const routine of document.querySelectorAll('.routine')){
+   routine.ontoggle=()=>{if(routine.open)openRoutine=routine.dataset.rid;else if(openRoutine===routine.dataset.rid)openRoutine=''};
+   routine.querySelector('[data-fold]').onclick=()=>{openRoutine='';routine.open=false;save()};
+ }
+ const toggle=$('#toggle-meal');
+ if(toggle)toggle.onclick=()=>{
+   const editor=$('#meal-editor');editor.hidden=!editor.hidden;
+   toggle.setAttribute('aria-expanded',String(!editor.hidden));
+ };
+ const measures=$('#measures');
+ if(measures){
+   const date=measures.dataset.dateKey;
+   let revision=0;
+   async function commit(){
+     if(!measures.reportValidity()||date!==today())return;
+     const stamp=++revision,day=record(date);
+     const changes=Array.from(measures.querySelectorAll('input'),input=>[input.name,input.value===''?null:input.valueAsNumber]);
+     const changed=changes.some(([key,value])=>day[key]!==value);
+     if(!changed&&!day.weight&&!day.waist){
+       $('#measure-status').textContent='Introduce el peso o la cintura.';return;
+     }
+     const ok=changed?await mutate(()=>{for(const [key,value] of changes)day[key]=value},date,false):await save();
+     if(measures.isConnected&&stamp===revision)$('#measure-status').textContent=ok?(measureStatus(day)||'✓ Medidas borradas'):'No se pudo guardar';
+   }
+   measures.oninput=()=>{revision++;$('#measure-status').textContent=''};
+   measures.onchange=commit;
+   measures.onsubmit=e=>{e.preventDefault();commit()};
+ }
 }

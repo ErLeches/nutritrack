@@ -46,3 +46,81 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 /* v5.5: el lienzo del rebote siempre usa el verde de la aplicación.
    El fondo claro queda limitado al contenido de Inicio. */
 :root, :root[data-theme=light], body{background-color:var(--forest)}
+
+[hidden]{display:none!important}
+:root:not([data-palette=green]){--forest:hsl(var(--h) 24% 17%);--surface:hsl(var(--h) 19% 21%);--edge:hsl(var(--h) 14% 32%);--panel:hsl(var(--h) 16% 26%);--track:hsl(var(--h) 15% 33%);--muted:hsl(var(--h) 15% 77%);--accent:var(--tone);--lime:var(--tone)}
+:root[data-theme=light]:not([data-palette=green]){--page:hsl(var(--h) 38% 92%);--text:hsl(var(--h) 22% 14%);--muted:hsl(var(--h) 12% 34%);--surface:var(--page);--track:hsl(var(--h) 20% 81%);--accent:hsl(var(--h) 44% 33%)}
+:root:not([data-palette=green]) .nav{--accent:var(--tone);background:var(--forest);--edge:hsl(var(--h) 14% 32%);--muted:hsl(var(--h) 15% 77%)}
+:root:not([data-palette=green]) .daily-header{--surface:var(--forest);--track:hsl(var(--h) 15% 32%)}
+:root:not([data-palette=green]) .daily-header .streak-badge{background:hsl(var(--h) 17% 28%)}
+.daily-header .fire{filter:none}
+.fire ellipse{fill:var(--flame-shadow)}
+.fire path:nth-child(2){fill:var(--flame-edge)}
+.fire path:nth-child(3){fill:var(--flame-fill)}
+.daily-header .streak-badge{color:var(--lime)}
+.daily-header .energy-title{width:max-content;max-width:100%;color:transparent;background:linear-gradient(90deg,var(--lime) 0 var(--filled),#f7faf3 var(--filled) 100%);background-clip:text;-webkit-background-clip:text}
+.energy-title.complete{animation:title-complete .65s ease-out}
+@keyframes title-complete{50%{transform:scale(1.035);filter:drop-shadow(0 0 5px var(--lime))}}
+@media(prefers-reduced-motion:reduce){.energy-title.complete{animation:none}}
+.measure-box{margin:12px 0}.measure-box summary,.routine summary,#adjust summary{cursor:pointer}.measure-box form{padding:14px 0}.routine summary{padding:6px}.routine[open] summary{margin-bottom:12px}.nutrition-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}.nutrition-grid b,.nutrition-grid small{display:block}.ingredient{border-bottom:1px solid var(--edge);padding-bottom:12px;margin-bottom:12px}#adjust{margin-top:12px}#portion-parts label{display:block;margin:8px 0}
+.measure-link{border-radius:13px}
+:root:not([data-palette=green]) .day.logged::before{background:var(--tone);border-color:hsl(var(--h) 35% 42%)}
+:root:not([data-palette=green]) .daily-energy .dial{--track:hsl(var(--h) 15% 32%)}
+
+.saved-recipe{display:grid;gap:12px;padding:14px 0;border-top:1px solid var(--edge)}
+.recipe-info{display:flex;align-items:center;gap:12px}.recipe-info>div{min-width:0;overflow-wrap:anywhere}
+.recipe-info small,.recipe-info b{display:block}.recipe-info small{margin-top:4px}
+.recipe-info img{flex:none}.saved-recipe .actions{margin:0;flex-wrap:wrap}
+.recipe-photo{display:grid;gap:10px}.recipe-photo .actions{margin:0}.recipe-photo button{justify-self:start}
+.compact-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,24%) 34px;align-items:start;gap:8px;border:0;padding:0;margin-bottom:10px}
+.compact-row>[data-remove]{margin-top:22px;min-height:42px}.compact-row small{display:block;margin-bottom:5px}
+.picker{position:relative;min-width:0}.picker summary{display:flex;gap:8px;align-items:center;justify-content:space-between;min-height:44px;padding:9px;border:1px solid var(--edge);border-radius:10px;cursor:pointer}
+.picker summary::-webkit-details-marker,.measure-link::-webkit-details-marker{display:none}
+.picker summary span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.picker summary::after{content:'⌄'}
+.picker-menu{display:grid;gap:8px;padding:8px;background:var(--surface);border:1px solid var(--edge);border-radius:10px}
+.picker-results{max-height:210px;overflow:auto}.picker-results button{display:block;text-align:left;width:100%;margin-bottom:3px;background:var(--panel);color:var(--text);overflow-wrap:anywhere}
+.composer{margin:16px 0;padding-bottom:16px;border-bottom:1px solid var(--edge)}.composer+.entry{border-top:0}.composer form{margin-top:12px}.composer .actions{flex-wrap:wrap}
+.template-dialog{color:var(--text);background:var(--surface);max-width:min(90vw,400px);margin:auto}
+.measure-link span{display:inline-block;line-height:1;transition:transform .18s ease}.measure-box[open] .measure-link span{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.measure-link span{transition:none}}
+
+.template-dialog::backdrop{background:rgba(0,0,0,.78)}
+body.modal-locked{position:fixed;inset-inline:0;top:var(--locked-top);overflow:hidden}
+.template-dialog{max-height:85dvh;overflow:auto;overscroll-behavior:contain}
+.recommendation{margin-top:18px}.recommendation h3{margin-bottom:10px}.recommendation #recommendation{margin-top:10px}
+#create-recipe #recipe-rows{margin-top:6px;padding-top:16px;border-top:1px solid var(--edge)}
+#create-recipe .compact-row{grid-template-rows:auto auto;row-gap:5px}
+#create-recipe .compact-row>div,#create-recipe .compact-row>label{display:grid;grid-template-rows:subgrid;grid-row:1 / 3;min-width:0}
+#create-recipe .compact-row small{margin:0}
+#create-recipe .compact-row .picker summary,#create-recipe .compact-row [data-grams],#create-recipe .compact-row [data-remove]{height:44px;min-height:44px;margin:0;align-self:start}
+#create-recipe .compact-row [data-remove]{grid-row:2;grid-column:3}
+
+/* Espacio entre el selector de periodo y el valor de la gráfica. */
+.card .period-field{display:grid;gap:8px;margin:12px 0 16px}
+.card .period-field select{margin:0}
+.food-line{grid-template-columns:48px minmax(0,1fr)}
+.food-line .row>b{min-width:0;overflow-wrap:anywhere}
+.food-line .meal-macros{margin-top:10px;gap:5px 10px}
+.meal-macros span{white-space:nowrap}
+.recommendation #recommendation:empty{display:none}
+
+/* La cabecera y el formulario comparten una sola tarjeta. */
+[data-theme=light] .measure-box{color-scheme:dark;color:#f7faf3;background:var(--forest);border:1px solid color-mix(in srgb,var(--forest) 76%,white);border-radius:15px}
+[data-theme=light] .measure-box .measure-link{background:transparent;color:inherit;border:0;font-weight:700}
+.measure-box form{margin:0 14px;padding:14px 0;border-top:1px solid color-mix(in srgb,var(--forest) 76%,white)}
+.measure-box label{color:#d9e4dc}
+.measure-box input{background:var(--forest);border:1px solid color-mix(in srgb,var(--forest) 64%,white);color:#f7faf3}
+.measure-box input:focus{outline-color:var(--lime)}
+.measure-box form button{background:var(--lime);color:#192722}
+#add-food .actions>.photo-button,.recipe-photo .actions>.photo-button{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:7px 12px}
+#remove-product-photo,#remove-recipe-photo{justify-self:start;min-height:44px;padding:7px 12px}
+
+.daily-log{margin:20px 0;color:var(--text)}.daily-log h2{margin:0;font-size:21px}.daily-log p{margin:6px 0 14px;font-size:14px;color:var(--muted)}
+.daily-log label{display:grid;gap:5px;font-size:14px;font-weight:600}.daily-log input{background:transparent;border-color:var(--track);color:inherit}
+.daily-log small{display:block;margin-top:8px;color:var(--accent)}
+.diary-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.diary-tools button{padding:10px 8px;min-height:44px}.diary-tools+#recommendation:not(:empty){margin-bottom:12px}
+
+.daily-log{padding-inline:12px}
+.daily-log #measures button{grid-column:1/-1;min-height:44px}
+.meal-group>.row+.food-line{margin-top:10px}
